@@ -1,0 +1,84 @@
+@use './variables' as v;
+
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  text-decoration: none;
+  scroll-behavior: smooth;
+  font-family: "Roboto";
+}
+
+html{
+  font-size: 1rem;
+  overflow-x: hidden;
+}
+
+body{
+  background-color: v.$primary-color;
+  font-family: v.$font-family;
+  color: v.$text-color;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+  ::selection{
+    background-color: rgb(227,174,237);
+    color: black;
+  }
+}
+
+section{
+  min-height: 100vh;
+  padding: 10rem 15%;
+}
+
+.container{
+  max-width: 1440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+span{
+  color: rgb(227,174,237);
+}
+
+a{
+  text-decoration: none;
+  color: whitesmoke;
+}
+
+
+ul, ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+button, 
+button:focus, 
+button:active {
+  all: unset;
+  box-sizing: border-box;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.hidden{
+  display: none;
+}
+
+.no-scroll{
+  overflow-y: hidden;
+  height: 100%;
+}
