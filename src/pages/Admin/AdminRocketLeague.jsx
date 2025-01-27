@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
+import apiUrl from "../../config";
 
 const AdminRocketLeague = () => {
   const [formData, setFormData] = useState({
+    date: "", // Nouvelle clé pour la date
+    event: "",
+    enjeu: "",
     equipe1: {
       nom: "",
       joueurs: Array.from({ length: 3 }, () => ({ pseudo: "" })),
@@ -12,17 +17,18 @@ const AdminRocketLeague = () => {
       joueurs: Array.from({ length: 3 }, () => ({ pseudo: "" })),
       coach: { pseudo: "" },
     },
-    event: "",
-    enjeu: "",
     bo: "BO3",
-    scoreBO: "",
+    scoreBO: "", // Score final
     matchs: [],
     stats: {
       meilleurButeur: [{ joueur: "", buts: 0 }],
       meilleurPasseur: [{ joueur: "", passes: 0 }],
       meilleurDefenseur: [{ joueur: "", saves: 0 }],
+      mvp: [""], // MVP global
     },
   });
+
+  const [errors, setErrors] = useState({});
 
   const getMinGames = (bo) => {
     switch (bo) {
@@ -57,7 +63,7 @@ const AdminRocketLeague = () => {
     if (currentGames < minGames) {
       const newMatchs = [];
       for (let i = currentGames; i < minGames; i++) {
-        newMatchs.push({ scoreEquipe1: 0, scoreEquipe2: 0 });
+        newMatchs.push({ scoreGentleMates: 0, scoreAdversaire: 0 });
       }
       setFormData({ ...formData, matchs: [...formData.matchs, ...newMatchs] });
     } else if (currentGames > minGames) {
@@ -131,7 +137,7 @@ const AdminRocketLeague = () => {
     }
     setFormData({
       ...formData,
-      matchs: [...formData.matchs, { scoreEquipe1: 0, scoreEquipe2: 0 }],
+      matchs: [...formData.matchs, { scoreGentleMates: 0, scoreAdversaire: 0 }],
     });
   };
 
@@ -147,20 +153,119 @@ const AdminRocketLeague = () => {
     setFormData({ ...formData, matchs: updatedMatchs });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form Data Rocket League:", formData);
+
+    // Initialisation des erreurs
+    const newErrors = {};
+    if (!formData.date) newErrors.date = "Date requise.";
+    if (!formData.event) newErrors.event = "Nom de l'événement requis.";
+    if (!formData.enjeu) newErrors.enjeu = "Enjeu requis.";
+    if (!formData.equipe1.nom)
+      newErrors.equipe1Nom = "Nom de l'équipe 1 requis.";
+    if (!formData.equipe2.nom)
+      newErrors.equipe2Nom = "Nom de l'équipe 2 requis.";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${apiUrl}/api/rocketleague`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      alert("Match ajouté avec succès !");
+      setFormData({
+        date: "",
+        event: "",
+        enjeu: "",
+        equipe1: {
+          nom: "",
+          joueurs: Array.from({ length: 3 }, () => ({ pseudo: "" })),
+          coach: { pseudo: "" },
+        },
+        equipe2: {
+          nom: "",
+          joueurs: Array.from({ length: 3 }, () => ({ pseudo: "" })),
+          coach: { pseudo: "" },
+        },
+        bo: "BO3",
+        scoreBO: "",
+        matchs: [],
+        stats: {
+          meilleurButeur: [{ joueur: "", buts: 0 }],
+          meilleurPasseur: [{ joueur: "", passes: 0 }],
+          meilleurDefenseur: [{ joueur: "", saves: 0 }],
+          mvp: [""],
+        },
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'ajout du match:", error);
+      
+      // Affiche les détails de l'erreur dans la console
+      if (error.response) {
+        console.error("Erreur réponse backend :", error.response.data);
+        alert(`Erreur du backend : ${error.response.data.message}`);
+      } else if (error.request) {
+        console.error("Erreur de requête :", error.request);
+        alert("Erreur de requête : Aucune réponse reçue du serveur.");
+      } else {
+        console.error("Erreur inconnue :", error.message);
+        alert(`Erreur inconnue : ${error.message}`);
+      }
+    }
   };
 
   return (
     <div>
       <h2>Encoder un Match Rocket League</h2>
       <form onSubmit={handleSubmit}>
-        {/* Informations générales des équipes */}
+        <h3>Contexte</h3>
+        <label>Date :</label>
+        <input
+          type="date"
+          name="date"
+          value={formData.date}
+          onChange={handleChange}
+        />
+        {errors.date && <p style={{ color: "red" }}>{errors.date}</p>}
+
+        <br />
+        <label>Nom de l'Événement :</label>
+        <input
+          type="text"
+          name="event"
+          value={formData.event}
+          onChange={handleChange}
+        />
+        {errors.event && <p style={{ color: "red" }}>{errors.event}</p>}
+
+        <br />
+        <label>Enjeu :</label>
+        <input
+          type="text"
+          name="enjeu"
+          value={formData.enjeu}
+          onChange={handleChange}
+        />
+        {errors.enjeu && <p style={{ color: "red" }}>{errors.enjeu}</p>}
+
         <h3>Équipe 1</h3>
         <label>Nom :</label>
         <input
           type="text"
+          name="equipe1Nom"
           value={formData.equipe1.nom}
           onChange={(e) =>
             setFormData({
@@ -169,6 +274,9 @@ const AdminRocketLeague = () => {
             })
           }
         />
+        {errors.equipe1Nom && (
+          <p style={{ color: "red" }}>{errors.equipe1Nom}</p>
+        )}
         <h4>Joueurs</h4>
         {formData.equipe1.joueurs.map((joueur, index) => (
           <div key={index}>
@@ -208,6 +316,7 @@ const AdminRocketLeague = () => {
         <label>Nom :</label>
         <input
           type="text"
+          name="equipe2Nom"
           value={formData.equipe2.nom}
           onChange={(e) =>
             setFormData({
@@ -216,6 +325,9 @@ const AdminRocketLeague = () => {
             })
           }
         />
+        {errors.equipe2Nom && (
+          <p style={{ color: "red" }}>{errors.equipe2Nom}</p>
+        )}
         <h4>Joueurs</h4>
         {formData.equipe2.joueurs.map((joueur, index) => (
           <div key={index}>
@@ -251,39 +363,43 @@ const AdminRocketLeague = () => {
           }
         />
 
-        {/* Gestion des matchs */}
         <h3>Matchs</h3>
-        <div>
-          <label>Format (BO) :</label>
-          <select
-            name="bo"
-            value={formData.bo}
-            onChange={(e) =>
-              setFormData({ ...formData, bo: e.target.value })
-            }
-          >
-            <option value="BO3">BO3</option>
-            <option value="BO5">BO5</option>
-            <option value="BO7">BO7</option>
-          </select>
-        </div>
+        <label>Score Final (BO) :</label>
+        <input
+          type="text"
+          name="scoreBO"
+          value={formData.scoreBO}
+          onChange={handleChange}
+        />
+        <br />
+        <label>Format (BO) :</label>
+        <select
+          name="bo"
+          value={formData.bo}
+          onChange={(e) => setFormData({ ...formData, bo: e.target.value })}
+        >
+          <option value="BO3">BO3</option>
+          <option value="BO5">BO5</option>
+          <option value="BO7">BO7</option>
+        </select>
+
         {formData.matchs.map((match, index) => (
           <div key={index}>
             <h4>Match {index + 1}</h4>
             <label>{formData.equipe1.nom || "Équipe 1"} :</label>
             <input
               type="number"
-              value={match.scoreEquipe1}
+              value={match.scoreGentleMates}
               onChange={(e) =>
-                handleMatchChange(index, "scoreEquipe1", e.target.value)
+                handleMatchChange(index, "scoreGentleMates", e.target.value)
               }
             />
             <label>{formData.equipe2.nom || "Équipe 2"} :</label>
             <input
               type="number"
-              value={match.scoreEquipe2}
+              value={match.scoreAdversaire}
               onChange={(e) =>
-                handleMatchChange(index, "scoreEquipe2", e.target.value)
+                handleMatchChange(index, "scoreAdversaire", e.target.value)
               }
             />
             <button type="button" onClick={() => removeMatch(index)}>
@@ -295,9 +411,8 @@ const AdminRocketLeague = () => {
           Ajouter un Match
         </button>
 
-        {/* Statistiques */}
         <h3>Statistiques</h3>
-        {/* Ajouter et gérer les statistiques comme demandé */}
+
         <h4>Meilleur(s) Buteur(s)</h4>
         {formData.stats.meilleurButeur.map((buteur, index) => (
           <div key={index}>
@@ -409,6 +524,7 @@ const AdminRocketLeague = () => {
                 )
               }
             />
+
             <button
               type="button"
               onClick={() => removeStat("meilleurDefenseur", index)}
@@ -421,7 +537,23 @@ const AdminRocketLeague = () => {
           Ajouter un Défenseur
         </button>
 
-        <button type="submit">Soumettre</button>
+        <h4>MVP</h4>
+        <input
+          type="text"
+          name="mvp"
+          value={formData.stats.mvp[0]}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              stats: { ...formData.stats, mvp: [e.target.value] },
+            })
+          }
+        />
+
+        <br />
+        <button type="submit" onClick={handleSubmit}>
+          Soumettre
+        </button>
       </form>
     </div>
   );
